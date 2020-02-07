@@ -1,10 +1,10 @@
 import argparse
-from collections import namedtuple
+import csv
 from datetime import date
 import json
 from pathlib import Path
 import pickle
-import pprint
+import sys
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -102,6 +102,25 @@ class PayPeriod:
             return work_event.date.day > 15
 
 
+def daily_report(date, work_events):
+    date_string = f'{date:%m/%d/%y}'
+    daily_events = [event for event in work_events if event.date == date]
+    daily_hours = sum([event.duration for event in daily_events])
+    hours_string = f'{daily_hours:.2f}'
+    daily_pay = pay(daily_hours)
+    return [date_string, hours_string, daily_pay]
+
+
+def project_report(project, _class, work_events):
+    proj_class_events = [event for event in work_events
+                         if event.project == project
+                         and event._class == _class]
+    proj_class_hours = sum([event.duration for event in proj_class_events])
+    hours_string = f'{proj_class_hours:.2f}'
+    proj_class_pay = pay(proj_class_hours)
+    return [project, _class, hours_string, proj_class_pay]
+
+
 def main():
     args = parse_args()
     pay_period = PayPeriod(args.month, args.period)
@@ -117,32 +136,17 @@ def main():
     work_events = [WorkEvent(row) for row in response['values'] if is_complete(row)]
     work_events = [event for event in work_events if event in pay_period]
 
+    # report by days
     work_days = [event.date for event in work_events]
     work_days = list(set(work_days))  # get unique work days
     work_days.sort()
-
-    # report by days
-    print('Date', 'Hours', 'Amount', sep=',')
-    for day in work_days:
-        date_string = f'{day:%m/%d/%y}'
-        daily_events = [event for event in work_events if event.date == day]
-        daily_hours = sum([event.duration for event in daily_events])
-        hours_string = f'{daily_hours:.2f}'
-        daily_pay = pay(daily_hours)
-        print(date_string, hours_string, daily_pay, sep=',')  # poor man's csv
-    print()
+    daily_reports = [daily_report(date, work_events) for date in work_days]
 
     # report by projects
     proj_classes = [(event.project, event._class) for event in work_events]
     proj_classes = list(set(proj_classes))
-    print('Project', 'Class', 'Hours', 'Amount', sep=',')
-    for project, _class in proj_classes:
-        proj_class_events = [event for event in work_events if event.project == project and event._class == _class]
-        proj_class_hours = sum([event.duration for event in proj_class_events])
-        hours_string = f'{proj_class_hours:.2f}'
-        proj_class_pay = pay(proj_class_hours)
-        print(project, _class, hours_string, proj_class_pay, sep=',')
-    print()
+    project_reports = [project_report(project, _class, work_events)
+                       for project, _class in proj_classes]
 
     # summary (including PTO)
     total_hours = sum([event.duration for event in work_events])
@@ -150,8 +154,20 @@ def main():
         total_hours += args.pto
         print(f'{args.pto} hours of PTO used this pay period\n')
     total_pay = pay(total_hours)
+    summary = f'Total: {total_hours:.2f}hrs ✕ ${HOURLY_RATE}/hr = ${total_pay}'
 
-    print(f'Total: {total_hours:.2f}hrs ✕ ${HOURLY_RATE}/hr = ${total_pay}')
+    # final report
+    report = [
+        ['Date', 'Hours', 'Amount'],
+        *daily_reports,
+        [],
+        ['Project', 'Class', 'Hours', 'Amount'],
+        *project_reports,
+        [],
+        [summary],
+    ]
+    writer = csv.writer(sys.stdout, lineterminator='\n')
+    writer.writerows(report)
 
 
 if __name__ == '__main__':
