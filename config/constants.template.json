@@ -1,0 +1,7 @@
+{  // NB: Delete all comments, including this one
+  "NAME": "",
+  "HOURLY_RATE": ,  // as a decimal
+  "SPREADSHEET ID": "",  // google sheets url is https://docs.google.com/spreadsheets/d/<SPREADSHEET_ID>/edit
+  "DATA_RANGE": "",  // where to find the data in your google doc
+  "TIMESHEET_DIR": ""  // where timesheets are located on your machine
+}
