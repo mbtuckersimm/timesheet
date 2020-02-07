@@ -44,6 +44,8 @@ def parse_args():
     parser.add_argument('month', type=int, choices=range(1,13), help='month (1–12)')
     parser.add_argument('period', type=int, choices=[1,2], help='period (1 or 2)')
     parser.add_argument('--pto', type=int, help='number of hours of PTO', default=0)
+    parser.add_argument('--save', dest='save', action='store_true', help='save raw data and completed report to files')
+    parser.set_defaults(save=False)
     return parser.parse_args()
 
 
@@ -120,6 +122,10 @@ def project_report(project, _class, work_events):
     hours_string = f'{proj_class_hours:.2f}'
     proj_class_pay = pay(proj_class_hours)
     return [project, _class, hours_string, proj_class_pay]
+
+
+def save(raw_data, report):
+    pass
 
 
 def main():
