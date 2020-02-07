@@ -31,10 +31,10 @@ def get_constant(key):
         raise ImproperlyConfigured(f'Constant {key.__repr__()} is not defined in {CONSTANTS_FILE}')
 
 
+NAME = get_constant('NAME')
 HOURLY_RATE = get_constant('HOURLY_RATE')
 SPREADSHEET_ID = get_constant('SPREADSHEET_ID')
 DATA_RANGE = get_constant('DATA_RANGE')
-NAME = get_constant('NAME')
 
 
 def parse_args():
@@ -139,12 +139,13 @@ def main():
         range=DATA_RANGE,
         majorDimension='ROWS'
     ).execute()
-    work_events = [WorkEvent(row) for row in response['values'] if is_complete(row)]
+    raw_data = response['values']  # may contain incomplete entries and entries not in the pay period
+    work_events = [WorkEvent(row) for row in raw_data if is_complete(row)]
     work_events = [event for event in work_events if event in pay_period]
 
     # report by days
     work_days = [event.date for event in work_events]
-    work_days = list(set(work_days))  # get unique work days
+    work_days = list(set(work_days))
     work_days.sort()
     daily_reports = [daily_report(date, work_events) for date in work_days]
 
@@ -160,7 +161,6 @@ def main():
         [f'{work_days[0]:%B %Y} pay period {args.period}'],
     ]
     total_hours = sum([event.duration for event in work_events])
-
     pto_report = []
     if args.pto:
         total_hours += args.pto
@@ -168,7 +168,6 @@ def main():
             [f'{args.pto} hours of PTO used this pay period'],
             [],
         ]
-
     total_pay = pay(total_hours)
     summary = f'Total: {total_hours:.2f}hrs ✕ ${HOURLY_RATE}/hr = ${total_pay}'
 
