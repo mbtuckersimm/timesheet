@@ -34,15 +34,16 @@ def get_constant(key):
 HOURLY_RATE = get_constant('HOURLY_RATE')
 SPREADSHEET_ID = get_constant('SPREADSHEET_ID')
 DATA_RANGE = get_constant('DATA_RANGE')
+NAME = get_constant('NAME')
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Make MSP invoice by pulling data and formatting data from Google Sheets"
+        description='Make MSP invoice by pulling data and formatting data from Google Sheets'
     )
     parser.add_argument('month', type=int, choices=range(1,13), help='month (1–12)')
     parser.add_argument('period', type=int, choices=[1,2], help='period (1 or 2)')
-    parser.add_argument('--pto', type=int, help="number of hours of PTO", default=0)
+    parser.add_argument('--pto', type=int, help='number of hours of PTO', default=0)
     return parser.parse_args()
 
 
@@ -132,7 +133,6 @@ def main():
         range=DATA_RANGE,
         majorDimension='ROWS'
     ).execute()
-
     work_events = [WorkEvent(row) for row in response['values'] if is_complete(row)]
     work_events = [event for event in work_events if event in pay_period]
 
@@ -149,21 +149,33 @@ def main():
                        for project, _class in proj_classes]
 
     # summary (including PTO)
+    headers = [
+        [f'Timesheet for {NAME}'],
+        [f'{work_days[0]:%B %Y} pay period {args.period}'],
+    ]
     total_hours = sum([event.duration for event in work_events])
+
+    pto_report = []
     if args.pto:
         total_hours += args.pto
-        print(f'{args.pto} hours of PTO used this pay period\n')
+        pto_report = [
+            [f'{args.pto} hours of PTO used this pay period'],
+            [],
+        ]
+
     total_pay = pay(total_hours)
     summary = f'Total: {total_hours:.2f}hrs ✕ ${HOURLY_RATE}/hr = ${total_pay}'
 
-    # final report
     report = [
+        *headers,
+        [],
         ['Date', 'Hours', 'Amount'],
         *daily_reports,
         [],
         ['Project', 'Class', 'Hours', 'Amount'],
         *project_reports,
         [],
+        *pto_report,
         [summary],
     ]
     writer = csv.writer(sys.stdout, lineterminator='\n')
