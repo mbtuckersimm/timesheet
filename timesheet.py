@@ -132,7 +132,7 @@ class PayPeriod:
 
 
 def daily_report(date, work_events):
-    date_string = f'{date:%m/%d/%y}'
+    date_string = f'{date:%m/%d/%Y}'
     daily_events = [event for event in work_events if event.date == date]
     daily_hours = sum([event.duration for event in daily_events])
     hours_string = f'{daily_hours:.2f}'
