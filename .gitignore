@@ -1,1 +1,3 @@
 /config/credentials.json
+/config/constants.json
+/config/token.pickle
