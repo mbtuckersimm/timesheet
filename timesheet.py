@@ -224,10 +224,11 @@ def main():
     args = parse_args()
     pay_period = PayPeriod(args.year, args.month, args.period)
     raw_data = get_raw_data()
-
     final_report = report(pay_period, raw_data, args.pto)
+
     if args.save:
         save(pay_period, final_report, raw_data)
+
     writer = csv.writer(sys.stdout, lineterminator='\n')
     writer.writerows(final_report)
 
