@@ -53,7 +53,14 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_service():
+def get_raw_data():
+    '''
+    Fetches raw work data from Google spreadsheet.
+
+    Result may contain incomplete entries and entries not in the pay period.
+    The final report is built from this. The raw data may also be saved for
+    forensic purposes if the --save option is invoked.
+    '''
     credentials = None
     if TOKEN_FILE.exists():
         with TOKEN_FILE.open(mode='rb') as token:
@@ -67,7 +74,15 @@ def get_service():
         # Save the credentials for the next run
         with TOKEN_FILE.open(mode='wb') as token:
             pickle.dump(credentials, token)
-    return build('sheets', 'v4', credentials=credentials)
+
+    service = build('sheets', 'v4', credentials=credentials)
+    sheet = service.spreadsheets()
+    response = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID,
+        range=DATA_RANGE,
+        majorDimension='ROWS'
+    ).execute()
+    return response['values']
 
 
 # ensure spreadsheet row has all 5 coordinates filled out
@@ -209,15 +224,7 @@ def save(pay_period, report, raw_data):
 def main():
     args = parse_args()
     pay_period = PayPeriod(args.year, args.month, args.period)
-
-    service = get_service()
-    sheet = service.spreadsheets()
-    response = sheet.values().get(
-        spreadsheetId=SPREADSHEET_ID,
-        range=DATA_RANGE,
-        majorDimension='ROWS'
-    ).execute()
-    raw_data = response['values']  # may contain incomplete entries and entries not in the pay period
+    raw_data = get_raw_data()
 
     final_report = report(pay_period, raw_data, args.pto)
     if args.save:
