@@ -13,23 +13,22 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
-CONFIG_DIR = Path(__file__).parent / 'config'
-CREDENTIALS_FILE = CONFIG_DIR / 'credentials.json'
-TOKEN_FILE = CONFIG_DIR / 'token.pickle'
-CONSTANTS_FILE = CONFIG_DIR / 'constants.json'
+# defines what operations you're allowed to do to the google doc
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
-try:
-    with CONSTANTS_FILE.open() as fp:
-        constants = json.load(fp)
-except FileNotFoundError:
-    constants = {}
+CONFIG_DIR = Path(__file__).parent / 'config'
+CONFIG_FILE = CONFIG_DIR / 'config.json'
+CREDENTIALS_FILE = CONFIG_DIR / 'credentials.json'
+TOKEN_FILE = CONFIG_DIR / 'token.pickle'
+
+with CONFIG_FILE.open() as fp:
+    constants = json.load(fp)
 
 def get_constant(key):
     try:
         return constants[key]
     except KeyError:
-        raise ImproperlyConfigured(f'Constant {key.__repr__()} is not defined in {CONSTANTS_FILE}')
+        raise ImproperlyConfigured(f'Constant {key.__repr__()} is not defined in {CONFIG_FILE}')
 
 
 NAME = get_constant('NAME')
