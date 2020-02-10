@@ -2,21 +2,22 @@ import argparse
 import csv
 from datetime import date
 import json
+import logging
 from pathlib import Path
 import pickle
+import re
 import sys
+import traceback
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-
 
 CONFIG_DIR = Path(__file__).parent / 'config'
 CREDENTIALS_FILE = CONFIG_DIR / 'credentials.json'
 TOKEN_FILE = CONFIG_DIR / 'token.pickle'
 CONSTANTS_FILE = CONFIG_DIR / 'constants.json'
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
-
 
 try:
     with CONSTANTS_FILE.open() as fp:
@@ -36,6 +37,8 @@ HOURLY_RATE = get_constant('HOURLY_RATE')
 SPREADSHEET_ID = get_constant('SPREADSHEET_ID')
 DATA_RANGE = get_constant('DATA_RANGE')
 
+logger = logging.getLogger(__name__)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -45,8 +48,8 @@ def parse_args():
     parser.add_argument('month', type=int, choices=range(1,13), help='month (1–12)')
     parser.add_argument('period', type=int, choices=[1,2], help='period (1 or 2)')
     parser.add_argument('--pto', type=int, help='number of hours of PTO', default=0)
-    # parser.add_argument('--save', dest='save', action='store_true', help='save raw data and completed report to files')
-    # parser.set_defaults(save=False)
+    parser.add_argument('--save', dest='save', action='store_true', help='save raw data and completed report to files')
+    parser.set_defaults(save=False)
     return parser.parse_args()
 
 
@@ -178,6 +181,31 @@ def report(pay_period, raw_data, pto):
     ]
 
 
+def _check_dirs():
+    timesheet_dir = get_constant('TIMESHEET_DIR')
+    timesheet_dir = Path(timesheet_dir)
+    raw_data_dir = timesheet_dir / 'raw'
+    for dir in [timesheet_dir, raw_data_dir]:
+        if not dir.exists():
+            raise FileNotFoundError(f"Directory '{dir}' not found. Create it before saving timesheets.")
+    return timesheet_dir, raw_data_dir
+
+
+def save(pay_period, report, raw_data):
+    timesheet_dir, raw_data_dir = _check_dirs()
+    clean_name = re.sub('\W', '_', NAME)  # \W matches non-word characters
+
+    timesheet_file = timesheet_dir / f'{pay_period}_{clean_name}.csv'
+    with timesheet_file.open(mode='w') as csvfile:
+        writer = csv.writer(csvfile, lineterminator='\n')
+        writer.writerows(report)
+
+    raw_data_file = raw_data_dir / f'{pay_period}_raw.csv'
+    with raw_data_file.open(mode='w') as csvfile:
+        writer = csv.writer(csvfile, lineterminator='\n')
+        writer.writerows(raw_data)
+
+
 def main():
     args = parse_args()
     pay_period = PayPeriod(args.year, args.month, args.period)
@@ -192,10 +220,17 @@ def main():
     raw_data = response['values']  # may contain incomplete entries and entries not in the pay period
 
     final_report = report(pay_period, raw_data, args.pto)
-
+    if args.save:
+        save(pay_period, final_report, raw_data)
     writer = csv.writer(sys.stdout, lineterminator='\n')
     writer.writerows(final_report)
 
+    return 0
+
 
 if __name__ == '__main__':
-    main()
+    try:
+        sys.exit(main())
+    except Exception:
+        logger.error(traceback.format_exc())
+        sys.exit(1)
