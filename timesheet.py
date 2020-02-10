@@ -42,12 +42,12 @@ logger = logging.getLogger(__name__)
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='Make MSP invoice by pulling data and formatting data from Google Sheets'
+        description='Make MSP timesheet by fetching and formatting data from Google Sheets'
     )
     parser.add_argument('year', type=int, help='4-digit year')
     parser.add_argument('month', type=int, choices=range(1,13), help='month (1–12)')
     parser.add_argument('period', type=int, choices=[1,2], help='period (1 or 2)')
-    parser.add_argument('--pto', type=int, help='number of hours of PTO', default=0)
+    parser.add_argument('--pto', type=int, help='number of hours of paid time off taken this pay cycle', default=0)
     parser.add_argument('--save', dest='save', action='store_true', help='save raw data and completed report to files')
     parser.set_defaults(save=False)
     return parser.parse_args()
