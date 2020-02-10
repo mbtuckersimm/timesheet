@@ -41,11 +41,12 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Make MSP invoice by pulling data and formatting data from Google Sheets'
     )
+    parser.add_argument('year', type=int, help='4-digit year')
     parser.add_argument('month', type=int, choices=range(1,13), help='month (1–12)')
     parser.add_argument('period', type=int, choices=[1,2], help='period (1 or 2)')
     parser.add_argument('--pto', type=int, help='number of hours of PTO', default=0)
-    parser.add_argument('--save', dest='save', action='store_true', help='save raw data and completed report to files')
-    parser.set_defaults(save=False)
+    # parser.add_argument('--save', dest='save', action='store_true', help='save raw data and completed report to files')
+    # parser.set_defaults(save=False)
     return parser.parse_args()
 
 
@@ -92,17 +93,25 @@ class PayPeriod:
     '''
     Used to determine whether work events should be counted in the timesheet
     '''
-    def __init__(self, month, period):
+    def __init__(self, year, month, period):
+        self.year = int(year)
         self.month = int(month)
         self.period = int(period)
+        self.fake_date = date(self.year, self.month, 1)  # for formatting purposes
 
     def __contains__(self, work_event):
-        if work_event.date.month != self.month:
+        if work_event.date.year != self.year or work_event.date.month != self.month:
             return False
         if self.period == 1:
             return work_event.date.day <= 15
         else:
             return work_event.date.day > 15
+
+    def __repr__(self):
+        return f'{self.fake_date:%Y-%m}-{self.period}'  # eg 2020-02-2
+
+    def fancy_repr(self):
+        return f'{self.fake_date:%B %Y} pay period {self.period}'  # eg February 2020
 
 
 def daily_report(date, work_events):
@@ -124,22 +133,7 @@ def project_report(project, _class, work_events):
     return [project, _class, hours_string, proj_class_pay]
 
 
-def save(raw_data, report):
-    pass
-
-
-def main():
-    args = parse_args()
-    pay_period = PayPeriod(args.month, args.period)
-
-    service = get_service()
-    sheet = service.spreadsheets()
-    response = sheet.values().get(
-        spreadsheetId=SPREADSHEET_ID,
-        range=DATA_RANGE,
-        majorDimension='ROWS'
-    ).execute()
-    raw_data = response['values']  # may contain incomplete entries and entries not in the pay period
+def report(pay_period, raw_data, pto):
     work_events = [WorkEvent(row) for row in raw_data if is_complete(row)]
     work_events = [event for event in work_events if event in pay_period]
 
@@ -158,20 +152,19 @@ def main():
     # summary (including PTO)
     headers = [
         [f'Timesheet for {NAME}'],
-        [f'{work_days[0]:%B %Y} pay period {args.period}'],
+        [pay_period.fancy_repr()],
     ]
-    total_hours = sum([event.duration for event in work_events])
     pto_report = []
-    if args.pto:
-        total_hours += args.pto
+    if pto:
         pto_report = [
             [f'{args.pto} hours of PTO used this pay period'],
             [],
         ]
+    total_hours = sum([event.duration for event in work_events]) + pto
     total_pay = pay(total_hours)
     summary = f'Total: {total_hours:.2f}hrs ✕ ${HOURLY_RATE}/hr = ${total_pay}'
 
-    report = [
+    return [
         *headers,
         [],
         ['Date', 'Hours', 'Amount'],
@@ -183,8 +176,25 @@ def main():
         *pto_report,
         [summary],
     ]
+
+
+def main():
+    args = parse_args()
+    pay_period = PayPeriod(args.year, args.month, args.period)
+
+    service = get_service()
+    sheet = service.spreadsheets()
+    response = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID,
+        range=DATA_RANGE,
+        majorDimension='ROWS'
+    ).execute()
+    raw_data = response['values']  # may contain incomplete entries and entries not in the pay period
+
+    final_report = report(pay_period, raw_data, args.pto)
+
     writer = csv.writer(sys.stdout, lineterminator='\n')
-    writer.writerows(report)
+    writer.writerows(final_report)
 
 
 if __name__ == '__main__':
