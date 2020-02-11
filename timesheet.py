@@ -153,6 +153,15 @@ def project_report(project, _class, work_events):
     return [project, _class, hours_string, proj_class_pay]
 
 
+def _pto_report(hours):
+    if hours:
+        return [
+            [f'{hours} hours of PTO used this pay period'],
+            [],
+        ]
+    return []
+
+
 def report(pay_period, raw_data, pto):
     work_events = [WorkEvent(row) for row in raw_data if is_complete(row)]
     work_events = [event for event in work_events if event in pay_period]
@@ -174,12 +183,7 @@ def report(pay_period, raw_data, pto):
         [f'Timesheet for {NAME}'],
         [pay_period.fancy_repr()],
     ]
-    pto_report = []
-    if pto:
-        pto_report = [
-            [f'{args.pto} hours of PTO used this pay period'],
-            [],
-        ]
+    pto_report = _pto_report(pto)
     total_hours = sum([event.duration for event in work_events]) + pto
     total_pay = pay(total_hours)
     summary = f'Total: {total_hours:.2f}hrs ✕ ${HOURLY_RATE}/hr = ${total_pay}'
