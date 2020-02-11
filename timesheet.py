@@ -96,8 +96,10 @@ def pay(hours):
 class WorkEvent:
     '''
     Bag of data for a single clock-in/clock-out event.
-    Input to constructor is a list (of strings):
+    Input to constructor is a list (of strings) from a spreadsheet row:
         [date (YYYY-MM-DD), time in, time out, duration (hrs), project, class, note]
+    We don't care about time in/time out because the spreadsheet already calculates
+    the duration of the work event.
     '''
     def __init__(self, event):
         self.date = date.fromisoformat(event[0])
@@ -109,6 +111,7 @@ class WorkEvent:
 class PayPeriod:
     '''
     Used to determine whether work events should be counted in the timesheet
+    and to do some formatting.
     '''
     def __init__(self, year, month, period):
         self.year = int(year)
