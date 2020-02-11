@@ -134,7 +134,7 @@ class PayPeriod:
         return f'{self.fake_date:%B %Y} pay period {self.period}'  # eg February 2020
 
 
-def daily_report(date, work_events):
+def _daily_report(date, work_events):
     date_string = f'{date:%m/%d/%Y}'
     daily_events = [event for event in work_events if event.date == date]
     daily_hours = sum([event.duration for event in daily_events])
@@ -143,7 +143,7 @@ def daily_report(date, work_events):
     return [date_string, hours_string, daily_pay]
 
 
-def project_report(project, _class, work_events):
+def _project_report(project, _class, work_events):
     proj_class_events = [event for event in work_events
                          if event.project == project
                          and event._class == _class]
@@ -170,12 +170,12 @@ def report(pay_period, raw_data, pto):
     work_days = [event.date for event in work_events]
     work_days = list(set(work_days))
     work_days.sort()
-    daily_reports = [daily_report(date, work_events) for date in work_days]
+    daily_reports = [_daily_report(date, work_events) for date in work_days]
 
     # report by projects
     proj_classes = [(event.project, event._class) for event in work_events]
     proj_classes = list(set(proj_classes))
-    project_reports = [project_report(project, _class, work_events)
+    project_reports = [_project_report(project, _class, work_events)
                        for project, _class in proj_classes]
 
     # summary (including PTO)
