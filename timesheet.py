@@ -102,6 +102,7 @@ def pay(hours):
 class WorkEvent:
     '''
     Bag of data for a single clock-in/clock-out event.
+
     Input to constructor is a list (of strings) from a spreadsheet row:
         [date (YYYY-MM-DD), time in, time out, duration (hrs), project, class, note]
     We don't care about time in/time out because the spreadsheet already calculates
@@ -133,11 +134,11 @@ class PayPeriod:
         else:
             return work_event.date.day > 15
 
-    def __repr__(self):
-        return f'{self.fake_date:%Y-%m}-{self.period}'  # eg 2020-02-2
+    def __repr__(self):  # eg 2020-02-2
+        return f'{self.fake_date:%Y-%m}-{self.period}'
 
-    def fancy_repr(self):
-        return f'{self.fake_date:%B %Y} pay period {self.period}'  # eg February 2020
+    def fancy_repr(self):  # eg February 2020 pay period 2
+        return f'{self.fake_date:%B %Y} pay period {self.period}'
 
 
 def _daily_report(date, work_events):
