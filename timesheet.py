@@ -13,6 +13,11 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
+
+class ImproperlyConfigured(Exception):
+    pass
+
+
 # defines what operations you're allowed to do to the google doc
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
@@ -23,6 +28,7 @@ TOKEN_FILE = CONFIG_DIR / 'token.pickle'
 
 with CONFIG_FILE.open() as fp:
     constants = json.load(fp)
+
 
 def get_constant(key):
     try:
