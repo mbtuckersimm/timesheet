@@ -141,37 +141,58 @@ class PayPeriod:
         return f'{self.fake_date:%B %Y} pay period {self.period}'
 
 
+def _split_days(work_events):
+    HOLIDAY_PROJECT = 'Holiday'
+    holidays = [event for event in work_events if event.project == HOLIDAY_PROJECT]
+    work_days = [event for event in work_events if event.project != HOLIDAY_PROJECT]
+    return work_days, holidays
+
+
 def _daily_report(date, work_events):
     date_string = f'{date:%m/%d/%Y}'
     daily_events = [event for event in work_events if event.date == date]
     daily_hours = sum([event.duration for event in daily_events])
     hours_string = f'{daily_hours:.2f}'
-    daily_pay = pay(daily_hours)
-    return [date_string, hours_string, daily_pay]
+    return [date_string, hours_string]
 
 
 def _project_report(project, _class, work_events):
     proj_class_events = [event for event in work_events
                          if event.project == project
                          and event._class == _class]
+    total_hours = sum([event.duration for event in work_events])
     proj_class_hours = sum([event.duration for event in proj_class_events])
     hours_string = f'{proj_class_hours:.2f}'
-    proj_class_pay = pay(proj_class_hours)
-    return [project, _class, hours_string, proj_class_pay]
+    proj_class_percent = f'{(proj_class_hours / total_hours) * 100:.1f}'
+    return [project, _class, hours_string, proj_class_percent]
 
+
+def _holiday_report(holidays):
+    if not holidays:
+        return []
+
+    holiday_reports = [
+        [f'{work_event.date:%m/%d/%Y}', work_event._class] for work_event in holidays
+    ]
+    return [
+        ['Paid holidays'],
+        *holiday_reports,
+        [],
+    ]
 
 def _pto_report(hours):
-    if hours:
-        return [
-            [f'{hours} hours of PTO used this pay period'],
-            [],
-        ]
-    return []
+    if not hours:
+        return []
+    return [
+        [f'{hours} hours of PTO used this pay period'],
+        [],
+    ]
 
 
 def report(pay_period, raw_data, pto):
     work_events = [WorkEvent(row) for row in raw_data if is_complete(row)]
     work_events = [event for event in work_events if event in pay_period]
+    work_events, holidays = _split_days(work_events)
 
     # report by days
     work_days = [event.date for event in work_events]
@@ -184,6 +205,10 @@ def report(pay_period, raw_data, pto):
     proj_classes = list(set(proj_classes))
     project_reports = [_project_report(project, _class, work_events)
                        for project, _class in proj_classes]
+
+    # holidays
+    holiday_report = _holiday_report(holidays)
+    # [_holiday_report(event) for event in holidays]
 
     # summary (including PTO)
     headers = [
@@ -198,12 +223,13 @@ def report(pay_period, raw_data, pto):
     return [
         *headers,
         [],
-        ['Date', 'Hours', 'Amount'],
+        ['Date', 'Hours'],
         *daily_reports,
         [],
-        ['Project', 'Class', 'Hours', 'Amount'],
+        ['Project', 'Class', 'Hours', '% of total'],
         *project_reports,
         [],
+        *holiday_report,
         *pto_report,
         [summary],
     ]
