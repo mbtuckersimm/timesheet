@@ -38,7 +38,6 @@ def get_constant(key):
 
 
 NAME = get_constant('NAME')
-HOURLY_RATE = get_constant('HOURLY_RATE')
 SPREADSHEET_ID = get_constant('SPREADSHEET_ID')
 DATA_RANGE = get_constant('DATA_RANGE')
 
@@ -93,10 +92,6 @@ def get_raw_data():
 # ensure spreadsheet row has all 5 coordinates filled out
 def is_complete(row):
     return len(row) >= 6 and all(row[:6])
-
-
-def pay(hours):
-    return f'{hours * HOURLY_RATE:.2f}'
 
 
 class WorkEvent:
@@ -206,19 +201,17 @@ def report(pay_period, raw_data, pto):
     project_reports = [_project_report(project, _class, work_events)
                        for project, _class in proj_classes]
 
-    # holidays
     holiday_report = _holiday_report(holidays)
-    # [_holiday_report(event) for event in holidays]
+    holiday_hours = 8 * len(holidays)
+    pto_report = _pto_report(pto)
 
     # summary (including PTO)
     headers = [
         [f'Timesheet for {NAME}'],
         [pay_period.fancy_repr()],
     ]
-    pto_report = _pto_report(pto)
-    total_hours = sum([event.duration for event in work_events]) + pto
-    total_pay = pay(total_hours)
-    summary = f'Total: {total_hours:.2f}hrs ✕ ${HOURLY_RATE}/hr = ${total_pay}'
+    total_hours = sum([event.duration for event in work_events]) + pto + holiday_hours
+    summary = f'Total: {total_hours:.2f} hours'
 
     return [
         *headers,
