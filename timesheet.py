@@ -92,7 +92,7 @@ def get_raw_data():
 
 # ensure spreadsheet row has all 5 coordinates filled out
 def is_complete(row):
-    return len(row) >= 5 and all(row[:5])
+    return len(row) >= 6 and all(row[:6])
 
 
 def pay(hours):
