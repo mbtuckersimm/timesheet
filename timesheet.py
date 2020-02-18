@@ -203,23 +203,22 @@ def report(pay_period, raw_data, pto):
 
     holiday_report = _holiday_report(holidays)
     holiday_hours = 8 * len(holidays)
-    pto_report = _pto_report(pto)
 
-    # summary (including PTO)
+    pto_report = _pto_report(pto)
     headers = [
         [f'Timesheet for {NAME}'],
         [pay_period.fancy_repr()],
+        [],
     ]
     total_hours = sum([event.duration for event in work_events]) + pto + holiday_hours
     summary = f'Total: {total_hours:.2f} hours'
 
     return [
         *headers,
-        [],
         ['Date', 'Hours'],
         *daily_reports,
         [],
-        ['Project', 'Class', 'Hours', '% of total'],
+        ['Project', 'Class', 'Hours', '% of total worked hours'],
         *project_reports,
         [],
         *holiday_report,
