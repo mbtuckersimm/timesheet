@@ -136,7 +136,7 @@ class PayPeriod:
         return f'{self.fake_date:%B %Y} pay period {self.period}'
 
 
-def _split_days(work_events):
+def _split_events(work_events):
     HOLIDAY_PROJECT = 'Holiday'
     holidays = [event for event in work_events if event.project == HOLIDAY_PROJECT]
     work_days = [event for event in work_events if event.project != HOLIDAY_PROJECT]
@@ -187,7 +187,7 @@ def _pto_report(hours):
 def report(pay_period, raw_data, pto):
     work_events = [WorkEvent(row) for row in raw_data if is_complete(row)]
     work_events = [event for event in work_events if event in pay_period]
-    work_events, holidays = _split_days(work_events)
+    work_events, holidays = _split_events(work_events)
 
     # report by days
     work_days = [event.date for event in work_events]
