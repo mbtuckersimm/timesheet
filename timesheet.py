@@ -3,6 +3,7 @@ import csv
 from datetime import date
 import json
 import logging
+from operator import itemgetter
 from pathlib import Path
 import pickle
 import re
@@ -94,6 +95,13 @@ def is_complete(row):
     return len(row) >= 6 and all(row[:6])
 
 
+# getters to extract data from spreadsheet rows
+_date = itemgetter(0)
+_duration = itemgetter(3)
+_project = itemgetter(4)
+_class = itemgetter(5)
+
+
 class WorkEvent:
     '''
     Bag of data for a single clock-in/clock-out event.
@@ -104,10 +112,10 @@ class WorkEvent:
     the duration of the work event.
     '''
     def __init__(self, event):
-        self.date = date.fromisoformat(event[0])
-        self.duration = float(event[3])
-        self.project = event[4]
-        self._class = event[5]
+        self.date = date.fromisoformat(_date(event))
+        self.duration = float(_duration(event))
+        self.project = _project(event)
+        self.cls = _class(event)
 
 
 class PayPeriod:
@@ -150,15 +158,15 @@ def _daily_report(date, work_events):
     return [date_string, hours_string]
 
 
-def _project_report(project, _class, work_events):
+def _project_report(project, cls, work_events):
     proj_class_events = (event for event in work_events
                          if event.project == project
-                         and event._class == _class)
+                         and event.cls == cls)
     total_hours = sum(event.duration for event in work_events)
     proj_class_hours = sum(event.duration for event in proj_class_events)
     hours_string = f'{proj_class_hours:.2f}'
     proj_class_percent = f'{(proj_class_hours / total_hours) * 100:.1f}'
-    return [project, _class, hours_string, proj_class_percent]
+    return [project, cls, hours_string, proj_class_percent]
 
 
 def _holiday_report(holidays):
@@ -166,7 +174,7 @@ def _holiday_report(holidays):
         return []
 
     holiday_reports = [
-        [f'{work_event.date:%m/%d/%Y}', work_event._class] for work_event in holidays
+        [f'{work_event.date:%m/%d/%Y}', work_event.cls] for work_event in holidays
     ]
     return [
         ['Paid holidays'],
@@ -195,10 +203,10 @@ def report(pay_period, raw_data, pto):
     daily_reports = [_daily_report(date, work_events) for date in work_days]
 
     # report by projects
-    proj_classes = [(event.project, event._class) for event in work_events]
+    proj_classes = [(event.project, event.cls) for event in work_events]
     proj_classes = list(set(proj_classes))
-    project_reports = [_project_report(project, _class, work_events)
-                       for project, _class in proj_classes]
+    project_reports = [_project_report(project, cls, work_events)
+                       for project, cls in proj_classes]
 
     holiday_report = _holiday_report(holidays)
     holiday_hours = 8 * len(holidays)
