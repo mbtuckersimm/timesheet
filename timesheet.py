@@ -145,18 +145,17 @@ def _split_events(work_events):
 
 def _daily_report(date, work_events):
     date_string = f'{date:%m/%d/%Y}'
-    daily_events = [event for event in work_events if event.date == date]
-    daily_hours = sum([event.duration for event in daily_events])
+    daily_hours = sum(event.duration for event in work_events if event.date == date)
     hours_string = f'{daily_hours:.2f}'
     return [date_string, hours_string]
 
 
 def _project_report(project, _class, work_events):
-    proj_class_events = [event for event in work_events
+    proj_class_events = (event for event in work_events
                          if event.project == project
-                         and event._class == _class]
-    total_hours = sum([event.duration for event in work_events])
-    proj_class_hours = sum([event.duration for event in proj_class_events])
+                         and event._class == _class)
+    total_hours = sum(event.duration for event in work_events)
+    proj_class_hours = sum(event.duration for event in proj_class_events)
     hours_string = f'{proj_class_hours:.2f}'
     proj_class_percent = f'{(proj_class_hours / total_hours) * 100:.1f}'
     return [project, _class, hours_string, proj_class_percent]
