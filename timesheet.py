@@ -89,7 +89,7 @@ def get_raw_data():
     return response['values']
 
 
-# ensure spreadsheet row has all 5 coordinates filled out
+# ensure spreadsheet row has all 6 coordinates filled out
 def is_complete(row):
     return len(row) >= 6 and all(row[:6])
 
