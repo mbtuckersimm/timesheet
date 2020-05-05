@@ -217,7 +217,7 @@ def report(pay_period, raw_data, pto):
         [pay_period.fancy_repr()],
         [],
     ]
-    total_hours = sum([event.duration for event in work_events]) + pto + holiday_hours
+    total_hours = sum(event.duration for event in work_events) + pto + holiday_hours
     summary = f'Total: {total_hours:.2f} hours'
 
     return [
