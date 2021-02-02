@@ -63,7 +63,7 @@ def get_raw_data():
     Fetches raw work data from Google spreadsheet.
 
     Result may contain incomplete entries and entries not in the pay period.
-    The final report is built from this. The raw data may also be saved for
+    The final report is built from this. The raw data will also be saved for
     forensic purposes if the --save option is invoked.
     '''
     credentials = None
