@@ -35,7 +35,7 @@ def get_constant(key):
     try:
         return constants[key]
     except KeyError:
-        raise ImproperlyConfigured(f'Constant {key.__repr__()} is not defined in {CONFIG_FILE}')
+        raise ImproperlyConfigured(f"Constant {key.__repr__()} is not defined in {CONFIG_FILE}")
 
 
 NAME = get_constant('NAME')
@@ -182,6 +182,7 @@ def _holiday_report(holidays):
         [],
     ]
 
+
 def _pto_report(hours):
     if not hours:
         return []
@@ -207,6 +208,7 @@ def report(pay_period, raw_data, pto):
     proj_classes = list(set(proj_classes))
     project_reports = [_project_report(project, cls, work_events)
                        for project, cls in proj_classes]
+    project_reports.sort(key=lambda pair: pair[0])
 
     holiday_report = _holiday_report(holidays)
     holiday_hours = 8 * len(holidays)
@@ -246,7 +248,7 @@ def _check_dirs():
 
 def save(pay_period, report, raw_data):
     timesheet_dir, raw_data_dir = _check_dirs()
-    clean_name = re.sub('\W', '_', NAME)  # \W matches non-word characters
+    clean_name = re.sub(r'\W', '_', NAME)  # \W matches non-word characters
 
     timesheet_file = timesheet_dir / f'{pay_period}_{clean_name}.csv'
     with timesheet_file.open(mode='w') as csvfile:
@@ -258,6 +260,8 @@ def save(pay_period, report, raw_data):
         writer = csv.writer(csvfile, lineterminator='\n')
         writer.writerows(raw_data)
 
+    return timesheet_file
+
 
 def main():
     args = parse_args()
@@ -265,11 +269,13 @@ def main():
     raw_data = get_raw_data()
     final_report = report(pay_period, raw_data, args.pto)
 
-    if args.save:
-        save(pay_period, final_report, raw_data)
-
     writer = csv.writer(sys.stdout, lineterminator='\n')
     writer.writerows(final_report)
+
+    if args.save:
+        timesheet = save(pay_period, final_report, raw_data)
+        print("~" * 40)
+        print(f"Timesheet saved at\n{timesheet}")
 
     return 0
 
