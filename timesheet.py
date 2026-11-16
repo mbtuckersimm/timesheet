@@ -201,7 +201,7 @@ def report(pay_period, raw_data, pto):
     work_days = [event.date for event in work_events]
     work_days = list(set(work_days))
     work_days.sort()
-    daily_reports = [_daily_report(date, work_events) for date in work_days]
+    # daily_reports = [_daily_report(date, work_events) for date in work_days]
 
     # report by projects
     proj_classes = [(event.project, event.cls) for event in work_events]
@@ -224,9 +224,9 @@ def report(pay_period, raw_data, pto):
 
     return [
         *headers,
-        ['Date', 'Hours'],
-        *daily_reports,
-        [],
+        # ['Date', 'Hours'],
+        # *daily_reports,
+        # [],
         ['Project', 'Class', 'Hours', '% of total worked hours'],
         *project_reports,
         [],
